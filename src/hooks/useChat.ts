@@ -139,9 +139,7 @@ export function useChat(walletAddress: string | null) {
     {
       id: "welcome",
       role: "assistant",
-      content: walletAddress
-        ? `Welcome back! I'm your StarkFolio AI. Your wallet is connected. Ask me to check your portfolio, find the best staking yield, or execute any transaction — all gasless. What would you like to do?`
-        : `Hi! I'm StarkFolio AI — your portfolio manager for Bitcoin yield on Starknet. Sign in with your email or Google to get started, then I'll help you manage your assets and find the best yield.`,
+      content: `Hi! I'm StarkFolio AI — your portfolio manager for Bitcoin yield on Starknet.\n\nI can help you:\n• Check your portfolio balances\n• Find the best staking yield\n• Stake STRK, claim rewards, transfer tokens\n• All transactions are gasless via AVNU\n\nWhat would you like to do?`,
       timestamp: new Date(),
     },
   ]);

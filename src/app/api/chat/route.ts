@@ -45,12 +45,15 @@ export async function POST(req: NextRequest) {
       ? `\n\nUser wallet address: ${walletAddress}`
       : "\n\nUser has not connected their wallet yet.");
 
-  const history = messages
+  // Gemini requires history to start with a user turn — strip leading model messages (e.g. welcome)
+  const allHistory = messages
     .slice(0, -1)
     .map((msg: { role: string; content: string }) => ({
       role: msg.role === "user" ? "user" : "model",
       parts: [{ text: msg.content }],
     }));
+  const firstUserIdx = allHistory.findIndex((m: { role: string }) => m.role === "user");
+  const history = firstUserIdx >= 0 ? allHistory.slice(firstUserIdx) : [];
 
   const lastMessage = messages[messages.length - 1];
   let lastError: unknown;
