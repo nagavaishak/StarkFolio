@@ -8,6 +8,7 @@ import { useStaking } from "@/hooks/useStaking";
 import { useChat } from "@/hooks/useChat";
 import { PortfolioOverview } from "@/components/dashboard/PortfolioOverview";
 import { StakingPositions } from "@/components/dashboard/StakingPositions";
+import { TransactionFeed } from "@/components/dashboard/TransactionFeed";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { shortenAddress } from "@/lib/utils/format";
 import { Bitcoin, LogOut, LayoutDashboard, Landmark, MessageSquare, Loader2 } from "lucide-react";
@@ -89,6 +90,7 @@ export default function Dashboard() {
             positions={positions}
             loading={stakingLoading}
           />
+          <TransactionFeed walletAddress={walletAddress} />
           <div className="h-4" />
         </div>
 
