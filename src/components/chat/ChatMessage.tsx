@@ -4,6 +4,7 @@ import { ChatMessage as ChatMessageType } from "@/types/chat";
 import { ToolResultCard } from "./ToolResultCard";
 import { clsx } from "clsx";
 import { Bot, User, Zap } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -41,12 +42,30 @@ export function ChatMessage({ message }: ChatMessageProps) {
               : "glass text-gray-200 rounded-tl-sm"
           )}
         >
-          {message.content.split("\n").map((line, i, arr) => (
-            <span key={i}>
-              {line}
-              {i < arr.length - 1 && <br />}
-            </span>
-          ))}
+          {isUser ? (
+            <span>{message.content}</span>
+          ) : (
+            <ReactMarkdown
+              components={{
+                p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+                strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                em: ({ children }) => <em className="italic text-gray-300">{children}</em>,
+                ul: ({ children }) => <ul className="list-disc list-inside space-y-0.5 my-1">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal list-inside space-y-0.5 my-1">{children}</ol>,
+                li: ({ children }) => <li className="text-gray-200">{children}</li>,
+                code: ({ children }) => (
+                  <code className="mono text-xs bg-white/10 px-1.5 py-0.5 rounded text-orange-300">{children}</code>
+                ),
+                a: ({ href, children }) => (
+                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline underline-offset-2">
+                    {children}
+                  </a>
+                ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          )}
         </div>
 
         {/* Tool result cards */}
