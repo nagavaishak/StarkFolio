@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: #080b14;
+  --color-surface: #0d1117;
+  --color-surface-2: #161b27;
+  --color-border: #1e2736;
+  --color-btc: #f7931a;
+  --color-purple: #5c4fe6;
+  --color-purple-light: #7c6ef0;
+  --color-green: #22c55e;
+  --color-red: #ef4444;
+  --color-muted: #6b7280;
+  --font-sans: "Satoshi", "General Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@font-face {
+  font-family: "Satoshi";
+  src: url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap");
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #080b14;
+  color: #e2e8f0;
+  font-family: system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2736;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2d3748;
+}
+
+/* Glow effects */
+.glow-btc {
+  box-shadow: 0 0 20px rgba(247, 147, 26, 0.15);
+}
+.glow-purple {
+  box-shadow: 0 0 20px rgba(92, 79, 230, 0.2);
+}
+
+/* Glass card */
+.glass {
+  background: rgba(13, 17, 23, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid #1e2736;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #f7931a 0%, #5c4fe6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animations */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
+/* Mono font for numbers/addresses */
+.mono {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
 }
