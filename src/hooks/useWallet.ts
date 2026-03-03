@@ -1,26 +1,10 @@
 "use client";
 
+import { usePrivy } from "@privy-io/react-auth";
 import { useMemo } from "react";
 
-// Safe import — returns dummy hooks if Privy is not configured
-function safeUsePrivy() {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { usePrivy } = require("@privy-io/react-auth");
-    return usePrivy();
-  } catch {
-    return {
-      ready: true,
-      authenticated: false,
-      user: null,
-      login: () => alert("Configure NEXT_PUBLIC_PRIVY_APP_ID to enable login"),
-      logout: async () => {},
-    };
-  }
-}
-
 export function useWallet() {
-  const { ready, authenticated, user, login, logout } = safeUsePrivy();
+  const { ready, authenticated, user, login, logout } = usePrivy();
 
   const walletAddress = useMemo(() => {
     if (!user?.linkedAccounts) return null;
@@ -32,11 +16,11 @@ export function useWallet() {
   }, [user]);
 
   return {
-    ready: ready as boolean,
-    authenticated: authenticated as boolean,
+    ready,
+    authenticated,
     user,
-    login: login as () => void,
-    logout: logout as () => Promise<void>,
+    login,
+    logout,
     walletAddress,
   };
 }
