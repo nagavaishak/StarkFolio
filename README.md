@@ -1,36 +1,169 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# StarkFolio
+
+**Your AI portfolio manager for Bitcoin yield on Starknet.**
+
+StarkFolio lets anyone manage Bitcoin and crypto assets on Starknet through natural language — no crypto knowledge required. Just sign in with your email or Google and start talking to your AI portfolio manager.
+
+> Built for the [Starkzap Developer Challenge](https://starkzap.dev) · $3,000 prize pool · Due March 10, 2026
+
+---
+
+## What It Does
+
+- **"What's in my portfolio?"** → Shows all token balances with USD values
+- **"Where should I stake my STRK?"** → Compares all validator APRs, picks the best
+- **"Stake 100 STRK with Karnot"** → Executes the stake, gasless, no ETH needed
+- **"Claim all my rewards"** → Batches claims across all active positions
+- **"Send 50 USDC to 0x..."** → Transfers tokens, also gasless
+
+Everything is gasless via AVNU Paymaster. No seed phrases. No wallet extensions.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| Blockchain SDK | `starkzap` |
+| Wallet Auth | Privy (email, Google, Apple) |
+| Paymaster | AVNU Paymaster (gasless) |
+| AI Agent | Google Gemini Flash (function calling) |
+| Styling | Tailwind CSS 4 |
+| Network | Starknet Sepolia |
+| Deploy | Vercel |
+
+### Starkzap SDK Modules Used
+- **Wallets** — Privy social login → Starknet embedded wallet
+- **ERC20** — Token balance fetching for BTC, STRK, ETH, stablecoins
+- **Staking** — Full lifecycle: enter, add, claim, exit-intent, exit
+- **Transaction Builder** — Batched atomic operations (claim-all + restake)
+- **AVNU Paymaster** — Every transaction is gasless (`feeMode: "sponsored"`)
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 18+
+- pnpm
+
+### 1. Clone and install
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/nagavaishak/StarkFolio.git
+cd StarkFolio
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Set up environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Edit `.env.local`:
 
-## Learn More
+```bash
+# Privy — create app at https://dashboard.privy.io
+NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id
+PRIVY_APP_SECRET=your-privy-secret
 
-To learn more about Next.js, take a look at the following resources:
+# Google Gemini Flash — free tier at https://aistudio.google.com/apikey
+GOOGLE_AI_API_KEY=your-gemini-api-key
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Starknet (already set)
+NEXT_PUBLIC_STARKNET_NETWORK=sepolia
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. Run
 
-## Deploy on Vercel
+```bash
+pnpm dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Open [http://localhost:3000](http://localhost:3000)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Architecture
+
+```
+┌────────────────────────────────────────────┐
+│              Next.js Frontend               │
+│                                             │
+│  Login Page  │  Dashboard  │  AI Chat      │
+│  (Privy)     │  (Portfolio │  (Gemini      │
+│              │  + Staking) │   Flash)      │
+└──────────────────────┬─────────────────────┘
+                       │
+┌──────────────────────▼─────────────────────┐
+│           Next.js API Routes                │
+│                                             │
+│  /api/chat      → Gemini + tool execution  │
+│  /api/wallet    → Privy wallet proxy       │
+│  /api/wallet/sign → Privy signing proxy    │
+└──────────────────────┬─────────────────────┘
+                       │
+┌──────────────────────▼─────────────────────┐
+│              Starkzap SDK                   │
+│                                             │
+│  WalletInterface · ERC20 · Staking         │
+│  Transaction Builder · AVNU Paymaster      │
+└──────────────────────┬─────────────────────┘
+                       │
+┌──────────────────────▼─────────────────────┐
+│           Starknet Blockchain               │
+│  STRK Staking · BTC Tokens · Stablecoins  │
+└────────────────────────────────────────────┘
+```
+
+---
+
+## AI Capabilities
+
+The Gemini Flash agent has 10 tools:
+
+| Tool | Description |
+|------|-------------|
+| `get_portfolio_balances` | All token balances + USD values |
+| `get_staking_pools` | All validators with APR + commission |
+| `get_staking_position` | Position in a specific pool |
+| `get_all_positions` | All active staking positions |
+| `stake_tokens` | Smart stake (auto enter or add) |
+| `claim_rewards` | Claim from specific pool |
+| `claim_all_rewards` | Batch claim all positions |
+| `transfer_tokens` | Send tokens to any address |
+| `recommend_best_yield` | AI analysis of best strategy |
+| `exit_staking_pool` | Begin 21-day exit cooldown |
+
+All fund-moving operations require explicit user confirmation before execution.
+
+---
+
+## Key Features
+
+### Gasless Everything
+Every transaction uses AVNU Paymaster with `feeMode: "sponsored"`. Users never need to hold ETH for gas.
+
+### BTCFi Focus
+Native support for all Starknet BTC tokens: WBTC, LBTC, SolvBTC, tBTC. Dedicated BTC yield tracking.
+
+### Batched Transactions
+Uses Starkzap Transaction Builder for atomic multi-operation batches — e.g., claim all rewards + restake in a single transaction.
+
+### No Crypto Knowledge Required
+Privy handles wallet creation invisibly. Users sign in with email or Google and get a Starknet wallet automatically.
+
+---
+
+## Demo
+
+Live: [starkfolio.vercel.app](https://starkfolio.vercel.app)
+
+---
+
+## License
+
+MIT
