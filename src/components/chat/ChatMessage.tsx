@@ -1,6 +1,7 @@
 "use client";
 
 import { ChatMessage as ChatMessageType } from "@/types/chat";
+import { ToolResultCard } from "./ToolResultCard";
 import { clsx } from "clsx";
 import { Bot, User, Zap } from "lucide-react";
 
@@ -29,8 +30,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
       </div>
 
-      {/* Bubble */}
-      <div className={clsx("max-w-[82%] space-y-2", isUser ? "items-end" : "items-start")}>
+      {/* Content */}
+      <div className={clsx("max-w-[82%] space-y-1", isUser ? "items-end" : "items-start")}>
+        {/* Message bubble */}
         <div
           className={clsx(
             "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
@@ -39,21 +41,29 @@ export function ChatMessage({ message }: ChatMessageProps) {
               : "glass text-gray-200 rounded-tl-sm"
           )}
         >
-          {/* Render newlines */}
-          {message.content.split("\n").map((line, i) => (
+          {message.content.split("\n").map((line, i, arr) => (
             <span key={i}>
               {line}
-              {i < message.content.split("\n").length - 1 && <br />}
+              {i < arr.length - 1 && <br />}
             </span>
           ))}
         </div>
+
+        {/* Tool result cards */}
+        {message.toolCalls?.map((tc, i) =>
+          tc.result ? (
+            <div key={i} className="w-full">
+              <ToolResultCard toolName={tc.name} result={tc.result} />
+            </div>
+          ) : null
+        )}
 
         {/* Tool call indicator */}
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="flex items-center gap-1.5 px-1">
             <Zap className="w-3 h-3 text-orange-400" />
-            <span className="text-xs text-gray-500">
-              Called: {message.toolCalls.map((t) => t.name).join(", ")}
+            <span className="text-[10px] text-gray-500">
+              {message.toolCalls.map((t) => t.name.replace(/_/g, " ")).join(", ")}
             </span>
           </div>
         )}
