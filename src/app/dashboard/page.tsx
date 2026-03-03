@@ -10,6 +10,7 @@ import { PortfolioOverview } from "@/components/dashboard/PortfolioOverview";
 import { StakingPositions } from "@/components/dashboard/StakingPositions";
 import { TransactionFeed } from "@/components/dashboard/TransactionFeed";
 import { ChatPanel } from "@/components/chat/ChatPanel";
+import { ToastContainer, useToast } from "@/components/ui/Toast";
 import { shortenAddress } from "@/lib/utils/format";
 import { Bitcoin, LogOut, LayoutDashboard, Landmark, MessageSquare, Loader2 } from "lucide-react";
 
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const { pools, positions, loading: stakingLoading } = useStaking(walletAddress);
   const { messages, isLoading: chatLoading, sendMessage } = useChat(walletAddress);
   const [activeTab, setActiveTab] = useState<Tab>("portfolio");
+  const { toasts, removeToast } = useToast();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -46,6 +48,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#080b14] flex flex-col">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       {/* Top nav */}
       <header className="border-b border-white/5 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
