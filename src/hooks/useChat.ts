@@ -180,6 +180,18 @@ export function useChat(walletAddress: string | null) {
           signal: abortRef.current.signal,
         });
 
+        if (res.status === 429) {
+          const errData = await res.json();
+          const errorMsg: ChatMessage = {
+            id: generateId(),
+            role: "assistant",
+            content: errData.error || "Rate limit hit — please wait a moment and try again.",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMsg]);
+          setIsLoading(false);
+          return;
+        }
         if (!res.ok) throw new Error("Chat API error");
 
         const data = await res.json();

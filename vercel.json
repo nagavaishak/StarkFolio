@@ -1,4 +1,5 @@
 {
+  "name": "starkfolio",
   "framework": "nextjs",
   "buildCommand": "pnpm build",
   "installCommand": "pnpm install",
