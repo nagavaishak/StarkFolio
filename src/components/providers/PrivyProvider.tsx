@@ -1,7 +1,7 @@
 "use client";
 
 import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
-import { useState, useEffect, Component, ReactNode } from "react";
+import { Component, ReactNode } from "react";
 import { WalletBridge } from "./WalletProvider";
 
 const PRIVY_APP_ID =
@@ -19,7 +19,7 @@ class PrivyErrorBoundary extends Component<
     return { hasError: true };
   }
   componentDidCatch(error: Error) {
-    console.error("[Privy] render error:", error.message);
+    console.error("[Privy] error:", error.message);
   }
   render() {
     if (this.state.hasError) return this.props.fallback;
@@ -27,15 +27,7 @@ class PrivyErrorBoundary extends Component<
   }
 }
 
-export function PrivyProvider({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return <>{children}</>;
-
+function PrivyProviderInner({ children }: { children: ReactNode }) {
   return (
     <PrivyErrorBoundary fallback={<>{children}</>}>
       <PrivyAuthProvider
@@ -53,3 +45,10 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
     </PrivyErrorBoundary>
   );
 }
+
+// Dynamic import ensures this never runs on the server
+import dynamic from "next/dynamic";
+export const PrivyProvider = dynamic(
+  () => Promise.resolve(PrivyProviderInner),
+  { ssr: false }
+);
