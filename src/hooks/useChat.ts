@@ -4,15 +4,34 @@ import { useState, useCallback, useRef } from "react";
 import { ChatMessage, ToolCall } from "@/types/chat";
 import { MOCK_VALIDATOR_APRS } from "@/lib/starkzap/tokens";
 
+// Call the real gasless execute API; falls back to simulation on error
+async function executeOnChain(
+  operation: string,
+  params: Record<string, string>,
+  getAccessToken: () => Promise<string | null>
+): Promise<Record<string, unknown>> {
+  const token = await getAccessToken();
+  if (!token) throw new Error("Not authenticated");
+  const res = await fetch("/api/execute", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ operation, params }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Execute failed");
+  return data;
+}
+
 function generateId(): string {
   return Math.random().toString(36).slice(2);
 }
 
-// Tool executor: bridges AI tool calls to mock StarkZap operations
+// Tool executor: bridges AI tool calls to StarkZap operations
 async function executeToolCall(
   toolName: string,
   toolArgs: Record<string, unknown>,
-  walletAddress: string | null
+  walletAddress: string | null,
+  getAccessToken: () => Promise<string | null>
 ): Promise<unknown> {
   // Simulate network delay
   await new Promise((r) => setTimeout(r, 600));
@@ -119,59 +138,62 @@ async function executeToolCall(
 
     case "stake_tokens": {
       const { pool_address, amount } = toolArgs as { pool_address: string; amount: string };
-      return {
-        status: "pending_confirmation",
-        summary: `Stake ${amount} STRK in pool ${pool_address.slice(0, 8)}...`,
-        txHash: null,
-        note: "Transaction will be gasless via AVNU Paymaster.",
-      };
+      try {
+        return await executeOnChain("stake", { pool_address, amount }, getAccessToken);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        return { status: "error", note: `Could not execute: ${msg}. Tx would be gasless via AVNU.` };
+      }
     }
 
     case "claim_rewards": {
       const { pool_address } = toolArgs as { pool_address: string };
-      return {
-        status: "simulated",
-        pool: pool_address.slice(0, 8) + "...",
-        rewardsClaimed: "12.4823 STRK",
-        txHash: "0xdemo" + Math.random().toString(16).slice(2, 12),
-        explorerUrl: `${process.env.NEXT_PUBLIC_EXPLORER_URL || "https://sepolia.voyager.online"}/tx/0xdemo`,
-        note: "Gasless transaction — no ETH needed.",
-      };
+      try {
+        return await executeOnChain("claim_rewards", { pool_address }, getAccessToken);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        return { status: "error", note: `Could not execute: ${msg}` };
+      }
     }
 
     case "claim_all_rewards": {
-      return {
-        status: "simulated",
-        totalClaimed: "18.7241 STRK",
-        pools: ["Karnot", "Argent"],
-        txHash: "0xdemo" + Math.random().toString(16).slice(2, 12),
-        note: "Batched claim via Transaction Builder. Gasless.",
-      };
+      // Batch: claim from all validators the user has positions in
+      try {
+        const res = await fetch(`/api/starkzap?address=${encodeURIComponent(walletAddress || "")}`);
+        if (res.ok) {
+          const data = await res.json();
+          const positions = data.positions || [];
+          if (positions.length === 0) return { status: "no_positions", note: "No active staking positions to claim from." };
+          // Claim first position with rewards (real implementation)
+          const withRewards = positions.filter((p: { rewards: string }) => parseFloat(p.rewards) > 0);
+          if (withRewards.length === 0) return { status: "no_rewards", note: "No unclaimed rewards found." };
+          const result = await executeOnChain("claim_rewards", { pool_address: withRewards[0].poolAddress }, getAccessToken);
+          return { ...result, note: "Claimed from first active position. Gasless via AVNU." };
+        }
+      } catch { /* fall through */ }
+      return { status: "error", note: "Could not fetch staking positions." };
     }
 
     case "transfer_tokens": {
       const { token_symbol, amount, recipient } = toolArgs as { token_symbol: string; amount: string; recipient: string };
-      return {
-        status: "simulated",
-        token: token_symbol,
-        amount,
-        recipient: recipient.slice(0, 8) + "..." + recipient.slice(-6),
-        txHash: "0xdemo" + Math.random().toString(16).slice(2, 12),
-        note: "Gasless transfer via AVNU Paymaster.",
-      };
+      try {
+        return await executeOnChain("transfer", { token_symbol, amount, recipient }, getAccessToken);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        return { status: "error", note: `Could not execute: ${msg}` };
+      }
     }
 
     case "exit_staking_pool": {
       const { pool_address, amount } = toolArgs as { pool_address: string; amount: string };
-      const cooldownEnd = new Date();
-      cooldownEnd.setDate(cooldownEnd.getDate() + 21);
-      return {
-        status: "simulated",
-        pool: pool_address.slice(0, 8) + "...",
-        amount: `${amount} STRK`,
-        cooldownEnds: cooldownEnd.toLocaleDateString(),
-        note: "21-day cooldown period has started. You can complete the withdrawal after this date.",
-      };
+      try {
+        return await executeOnChain("exit_pool", { pool_address, amount }, getAccessToken);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        const cooldownEnd = new Date();
+        cooldownEnd.setDate(cooldownEnd.getDate() + 21);
+        return { status: "error", note: `Could not execute: ${msg}` };
+      }
     }
 
     default:
@@ -179,7 +201,7 @@ async function executeToolCall(
   }
 }
 
-export function useChat(walletAddress: string | null) {
+export function useChat(walletAddress: string | null, getAccessToken: () => Promise<string | null> = async () => null) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -241,7 +263,7 @@ export function useChat(walletAddress: string | null) {
 
         if (data.type === "tool_call") {
           // Execute tool and stream result back
-          const toolResult = await executeToolCall(data.toolName, data.toolArgs, walletAddress);
+          const toolResult = await executeToolCall(data.toolName, data.toolArgs, walletAddress, getAccessToken);
 
           const toolCall: ToolCall = {
             name: data.toolName,

@@ -246,11 +246,12 @@ export default function Home() {
   }, []);
 
   const handleLaunch = () => {
-    if (ready && authenticated) {
+    if (authenticated) {
       router.push("/dashboard");
-    } else {
+    } else if (ready) {
       login();
     }
+    // if !ready: Privy still connecting, do nothing (button shows "Connecting...")
   };
 
   const TICKER = [
@@ -295,10 +296,9 @@ export default function Home() {
             </a>
             <button
               onClick={handleLaunch}
-              disabled={!ready}
-              className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold text-sm transition-all duration-200 disabled:opacity-40 flex items-center gap-1.5"
+              className={`px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold text-sm transition-all duration-200 flex items-center gap-1.5 ${!ready ? "opacity-60 cursor-wait" : ""}`}
             >
-              {authenticated ? "Open App" : "Launch App"}
+              {authenticated ? "Open App" : ready ? "Launch App" : "Connecting..."}
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -345,11 +345,10 @@ export default function Home() {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handleLaunch}
-                  disabled={!ready}
-                  className="px-7 py-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold text-base shadow-2xl hover:from-orange-400 hover:to-orange-300 disabled:opacity-40 transition-all duration-200 flex items-center gap-2.5 glow-btc"
+                  className={`px-7 py-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold text-base shadow-2xl hover:from-orange-400 hover:to-orange-300 transition-all duration-200 flex items-center gap-2.5 glow-btc ${!ready ? "opacity-60 cursor-wait" : ""}`}
                 >
                   <Zap className="w-4 h-4" />
-                  {authenticated ? "Open Dashboard" : "Launch App — Free"}
+                  {authenticated ? "Open Dashboard" : ready ? "Launch App — Free" : "Connecting..."}
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <a
@@ -399,100 +398,77 @@ export default function Home() {
       </div>
 
       {/* ── How It Works ─────────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-28 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div
-            className="text-center mb-16"
-            data-animate
-          >
-            <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-4">
-              Simple by design
-            </p>
-            <h2 className="text-4xl lg:text-6xl font-black mb-5">
-              How it <span className="gradient-text">works</span>
+      <section id="how-it-works" className="py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16" data-animate>
+            <h2 className="text-4xl lg:text-5xl font-black mb-4">
+              Three steps to yield
             </h2>
-            <p className="text-gray-400 text-lg max-w-xl mx-auto">
-              From sign-up to earning yield in three steps — no crypto knowledge
-              required
+            <p className="text-gray-500 text-base max-w-md mx-auto">
+              No seed phrases. No gas. No 12-word headaches.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5">
-            {[
-              {
-                step: "01",
-                icon: Lock,
-                title: "Connect your wallet",
-                desc: "Sign in with email or Google — no seed phrase, no browser extension. Privy creates a self-custodial Starknet wallet in seconds.",
-                accent: "orange",
-                delay: "0ms",
-              },
-              {
-                step: "02",
-                icon: Bot,
-                title: "Ask the AI anything",
-                desc: "Tell StarkFolio AI what you want: 'Find me the best yield' or 'Stake 100 STRK with Nethermind'. It analyzes, recommends, and executes.",
-                accent: "purple",
-                delay: "100ms",
-              },
-              {
-                step: "03",
-                icon: Zap,
-                title: "Execute gasless",
-                desc: "Every transaction is sponsored via AVNU Paymaster. No ETH needed. One confirmation, and you're earning.",
-                accent: "green",
-                delay: "200ms",
-              },
-            ].map(({ step, icon: Icon, title, desc, accent, delay }) => (
-              <div
-                key={step}
-                className="glass rounded-2xl p-6 relative overflow-hidden group hover:border-white/12 transition-all duration-300"
-                data-animate
-                style={{ transitionDelay: delay }}
-              >
-                <div
-                  className={`absolute -top-4 -right-4 w-28 h-28 rounded-full blur-3xl ${
-                    accent === "orange"
-                      ? "bg-orange-500/12"
-                      : accent === "purple"
-                      ? "bg-purple-500/12"
-                      : "bg-green-500/12"
-                  }`}
-                />
-                <span
-                  className={`mono text-xs font-black opacity-40 ${
-                    accent === "orange"
-                      ? "text-orange-400"
-                      : accent === "purple"
-                      ? "text-purple-400"
-                      : "text-green-400"
-                  }`}
-                >
-                  {step}
-                </span>
-                <div
-                  className={`w-11 h-11 rounded-xl mt-4 mb-5 flex items-center justify-center border ${
-                    accent === "orange"
-                      ? "bg-orange-500/12 border-orange-500/20"
-                      : accent === "purple"
-                      ? "bg-purple-500/12 border-purple-500/20"
-                      : "bg-green-500/12 border-green-500/20"
-                  }`}
-                >
-                  <Icon
-                    className={`w-5 h-5 ${
-                      accent === "orange"
-                        ? "text-orange-400"
-                        : accent === "purple"
-                        ? "text-purple-400"
-                        : "text-green-400"
+          {/* Step flow with connecting lines */}
+          <div className="relative" data-animate>
+            {/* Connecting line (desktop) */}
+            <div className="hidden md:block absolute top-10 left-[16.67%] right-[16.67%] h-px bg-gradient-to-r from-orange-500/30 via-white/10 to-green-500/30" />
+
+            <div className="grid md:grid-cols-3 gap-8 relative">
+              {[
+                {
+                  n: "1",
+                  color: "orange",
+                  title: "Sign in with email",
+                  desc: "Privy creates a self-custodial Starknet wallet instantly. No extension, no seed phrase, no setup time.",
+                  detail: "Powered by Privy + StarkZap",
+                },
+                {
+                  n: "2",
+                  color: "white",
+                  title: "Tell the AI what to do",
+                  desc: "\"Stake 100 STRK with Nethermind\" — it reads your balances, compares APRs, and prepares the transaction.",
+                  detail: "Gemini AI + StarkZap SDK",
+                },
+                {
+                  n: "3",
+                  color: "green",
+                  title: "Transaction executes gasless",
+                  desc: "AVNU Paymaster sponsors every transaction. You confirm once; your yield starts accruing.",
+                  detail: "AVNU Paymaster · feeMode: sponsored",
+                },
+              ].map(({ n, color, title, desc, detail }) => (
+                <div key={n} className="flex flex-col items-center text-center">
+                  {/* Step circle */}
+                  <div
+                    className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 border-2 relative z-10 ${
+                      color === "orange"
+                        ? "bg-orange-500/10 border-orange-500/40"
+                        : color === "green"
+                        ? "bg-green-500/10 border-green-500/40"
+                        : "bg-white/5 border-white/20"
                     }`}
-                  />
+                  >
+                    <span
+                      className={`mono text-2xl font-black ${
+                        color === "orange"
+                          ? "text-orange-400"
+                          : color === "green"
+                          ? "text-green-400"
+                          : "text-white"
+                      }`}
+                    >
+                      {n}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-white mb-2">{title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed mb-3 max-w-xs">{desc}</p>
+                  <span className="mono text-[10px] text-gray-700 border border-white/5 px-2 py-1 rounded-full bg-white/[0.02]">
+                    {detail}
+                  </span>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -529,10 +505,9 @@ export default function Home() {
             </ul>
             <button
               onClick={handleLaunch}
-              disabled={!ready}
-              className="mt-8 px-5 py-3 rounded-xl bg-orange-500/15 border border-orange-500/25 text-orange-400 font-semibold text-sm hover:bg-orange-500/20 transition-colors disabled:opacity-40 flex items-center gap-2"
+              className={`mt-8 px-5 py-3 rounded-xl bg-orange-500/15 border border-orange-500/25 text-orange-400 font-semibold text-sm hover:bg-orange-500/20 transition-colors flex items-center gap-2 ${!ready ? "opacity-60 cursor-wait" : ""}`}
             >
-              Try it free
+              {ready ? "Try it free" : "Connecting..."}
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -655,10 +630,9 @@ export default function Home() {
             </div>
             <button
               onClick={handleLaunch}
-              disabled={!ready}
-              className="px-5 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 font-semibold text-sm hover:bg-green-500/15 transition-colors disabled:opacity-40 flex items-center gap-2"
+              className={`px-5 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 font-semibold text-sm hover:bg-green-500/15 transition-colors flex items-center gap-2 ${!ready ? "opacity-60 cursor-wait" : ""}`}
             >
-              Start staking
+              {ready ? "Start staking" : "Connecting..."}
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -707,21 +681,20 @@ export default function Home() {
           data-animate
         >
           <h2 className="text-4xl lg:text-7xl font-black mb-6 leading-tight">
-            Start earning yield
+            Your STRK, earning
             <br />
-            <span className="gradient-text">in 60 seconds</span>
+            <span className="gradient-text">while you sleep</span>
           </h2>
           <p className="text-gray-400 text-xl mb-12 max-w-lg mx-auto leading-relaxed">
-            No seed phrases. No gas. No complexity. Just connect and let the AI
-            handle the rest.
+            Connect once. StarkFolio finds the best yield, stakes for you, and
+            claims rewards — all gasless, all on Starknet.
           </p>
           <button
             onClick={handleLaunch}
-            disabled={!ready}
-            className="px-10 py-5 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-400 text-white font-black text-xl shadow-2xl hover:from-orange-400 hover:to-orange-300 disabled:opacity-40 transition-all duration-200 flex items-center gap-3 mx-auto glow-pulse"
+            className={`px-10 py-5 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-400 text-white font-black text-xl shadow-2xl hover:from-orange-400 hover:to-orange-300 transition-all duration-200 flex items-center gap-3 mx-auto glow-pulse ${!ready ? "opacity-70 cursor-wait" : ""}`}
           >
             <Zap className="w-6 h-6" />
-            {authenticated ? "Go to Dashboard" : "Launch StarkFolio — Free"}
+            {authenticated ? "Go to Dashboard" : ready ? "Launch StarkFolio — Free" : "Connecting..."}
             <ArrowRight className="w-6 h-6" />
           </button>
           <p className="text-xs text-gray-600 mt-5">

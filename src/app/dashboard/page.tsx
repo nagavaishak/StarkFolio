@@ -18,10 +18,10 @@ type Tab = "portfolio" | "staking" | "chat";
 
 export default function Dashboard() {
   const router = useRouter();
-  const { ready, authenticated, walletAddress, logout } = useWallet();
+  const { ready, authenticated, walletAddress, logout, getAccessToken } = useWallet();
   const { portfolio, loading: portfolioLoading, refresh: refreshPortfolio } = usePortfolio(walletAddress);
   const { pools, positions, loading: stakingLoading } = useStaking(walletAddress);
-  const { messages, isLoading: chatLoading, sendMessage } = useChat(walletAddress);
+  const { messages, isLoading: chatLoading, sendMessage } = useChat(walletAddress, getAccessToken);
   const [activeTab, setActiveTab] = useState<Tab>("portfolio");
   const [copied, setCopied] = useState(false);
   const { toasts, removeToast } = useToast();

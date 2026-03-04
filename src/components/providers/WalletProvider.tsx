@@ -10,6 +10,7 @@ interface WalletCtx {
   login: () => void;
   logout: () => Promise<void>;
   walletAddress: string | null;
+  getAccessToken: () => Promise<string | null>;
 }
 
 const defaults: WalletCtx = {
@@ -19,6 +20,7 @@ const defaults: WalletCtx = {
   login: () => {},
   logout: async () => {},
   walletAddress: null,
+  getAccessToken: async () => null,
 };
 
 // Public context — consumed by useWallet() anywhere in the tree
@@ -50,7 +52,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
  */
 export function WalletBridge() {
   const setCtx = useContext(WalletSetterContext);
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { ready, authenticated, user, login, logout, getAccessToken } = usePrivy();
 
   const walletAddress = useMemo(() => {
     if (!user?.linkedAccounts) return null;
@@ -62,7 +64,7 @@ export function WalletBridge() {
   }, [user]);
 
   useEffect(() => {
-    setCtx({ ready, authenticated, user, login, logout, walletAddress });
+    setCtx({ ready, authenticated, user, login, logout, walletAddress, getAccessToken });
     // Reset to defaults when WalletBridge unmounts (e.g. Privy error)
     return () => setCtx(defaults);
     // eslint-disable-next-line react-hooks/exhaustive-deps
