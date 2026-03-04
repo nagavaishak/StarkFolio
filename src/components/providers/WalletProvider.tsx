@@ -1,7 +1,7 @@
 "use client";
 
-import { usePrivy } from "@privy-io/react-auth";
-import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
+import { usePrivy, useLogin } from "@privy-io/react-auth";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 
 interface WalletCtx {
   ready: boolean;
@@ -52,7 +52,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
  */
 export function WalletBridge() {
   const setCtx = useContext(WalletSetterContext);
-  const { ready, authenticated, user, login, logout, getAccessToken } = usePrivy();
+  const { ready, authenticated, user, logout, getAccessToken } = usePrivy();
+
+  // useLogin gives us a login function that opens the Privy modal
+  // AND fires onComplete when the user finishes logging in
+  const { login } = useLogin({
+    onComplete: (user) => {
+      console.log("[WalletBridge] login complete, user:", user);
+    },
+    onError: (error) => {
+      console.error("[WalletBridge] login error:", error);
+    },
+  });
 
   const walletAddress = useMemo(() => {
     if (!user?.linkedAccounts) return null;
@@ -63,27 +74,19 @@ export function WalletBridge() {
     return wallet?.address ?? null;
   }, [user]);
 
+  // Wrap login in a stable callback
+  const stableLogin = useCallback(() => {
+    console.log("[WalletBridge] login() called");
+    login();
+  }, [login]);
+
   useEffect(() => {
-    setCtx({ ready, authenticated, user, login, logout, walletAddress, getAccessToken });
-    // Expose login globally so components outside PrivyAuthProvider can call it
-    if (typeof window !== "undefined") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).__starkfolioLogin = login;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).__starkfolioLogout = logout;
-    }
+    console.log("[WalletBridge] updating context — ready:", ready, "authenticated:", authenticated, "walletAddress:", walletAddress);
+    setCtx({ ready, authenticated, user, login: stableLogin, logout, walletAddress, getAccessToken });
     // Reset to defaults when WalletBridge unmounts (e.g. Privy error)
-    return () => {
-      setCtx(defaults);
-      if (typeof window !== "undefined") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (window as any).__starkfolioLogin;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        delete (window as any).__starkfolioLogout;
-      }
-    };
+    return () => setCtx(defaults);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, authenticated, user, walletAddress]);
+  }, [ready, authenticated, user, walletAddress, stableLogin]);
 
   return null;
 }
