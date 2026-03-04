@@ -1,17 +1,21 @@
 "use client";
 
 import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
-import { Component, ReactNode } from "react";
+import { useState, useEffect, Component, ReactNode } from "react";
 import { WalletBridge } from "./WalletProvider";
 
 const PRIVY_APP_ID =
   process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmmb7r93600jq0dkvm8kyz0o0";
 
+/**
+ * Error boundary that renders children even if Privy crashes.
+ * This way the app still works (with no-op wallet defaults).
+ */
 class PrivyErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
+  { children: ReactNode; fallbackChildren: ReactNode },
   { hasError: boolean }
 > {
-  constructor(props: { children: ReactNode; fallback: ReactNode }) {
+  constructor(props: { children: ReactNode; fallbackChildren: ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -19,17 +23,39 @@ class PrivyErrorBoundary extends Component<
     return { hasError: true };
   }
   componentDidCatch(error: Error) {
-    console.error("[Privy] error:", error.message);
+    console.error("[Privy] initialization error:", error.message);
   }
   render() {
-    if (this.state.hasError) return this.props.fallback;
+    // On error: render the app children WITHOUT Privy (safe defaults)
+    if (this.state.hasError) return <>{this.props.fallbackChildren}</>;
     return this.props.children;
   }
 }
 
-function PrivyProviderInner({ children }: { children: ReactNode }) {
+/**
+ * PrivyProvider wraps children INSIDE PrivyAuthProvider so that
+ * WalletBridge can immediately push Privy state (including login)
+ * into WalletContext.
+ *
+ * Before client mount: children render alone (no Privy, safe defaults).
+ * After mount: children render inside PrivyAuthProvider + WalletBridge.
+ * On Privy error: children render alone (error boundary catches it).
+ */
+export function PrivyProvider({ children }: { children: ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // SSR / first client render: just render children with default WalletContext
+  if (!mounted) {
+    return <>{children}</>;
+  }
+
+  // Client: wrap children inside PrivyAuthProvider
   return (
-    <PrivyErrorBoundary fallback={<>{children}</>}>
+    <PrivyErrorBoundary fallbackChildren={children}>
       <PrivyAuthProvider
         appId={PRIVY_APP_ID}
         config={{
@@ -39,16 +65,9 @@ function PrivyProviderInner({ children }: { children: ReactNode }) {
           },
         }}
       >
-        {children}
         <WalletBridge />
+        {children}
       </PrivyAuthProvider>
     </PrivyErrorBoundary>
   );
 }
-
-// Dynamic import ensures this never runs on the server
-import dynamic from "next/dynamic";
-export const PrivyProvider = dynamic(
-  () => Promise.resolve(PrivyProviderInner),
-  { ssr: false }
-);

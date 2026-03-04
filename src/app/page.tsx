@@ -249,16 +249,7 @@ export default function Home() {
     if (authenticated) {
       router.push("/dashboard");
     } else {
-      // Try global login first (set by WalletBridge inside PrivyAuthProvider),
-      // then fall back to context login. This bypasses React context timing issues
-      // where children render outside PrivyAuthProvider as siblings.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const globalLogin = typeof window !== "undefined" && (window as any).__starkfolioLogin;
-      if (globalLogin) {
-        globalLogin();
-      } else {
-        login();
-      }
+      login();
     }
   };
 

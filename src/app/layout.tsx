@@ -28,10 +28,10 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ErrorBoundary>
           {/*
-           * WalletProvider wraps children with WalletContext (safe defaults).
-           * PrivyProvider mounts as a sibling — it NEVER wraps children.
-           * WalletBridge (inside Privy) pushes auth state into WalletContext.
-           * If Privy fails, children still render fine with ready:false defaults.
+           * WalletProvider: provides WalletContext with safe defaults.
+           * PrivyProvider: wraps children INSIDE PrivyAuthProvider after mount.
+           * WalletBridge: reads Privy state and pushes it into WalletContext.
+           * If Privy fails, error boundary renders children with defaults.
            */}
           <WalletProvider>
             <PrivyProvider>
