@@ -1,13 +1,13 @@
 "use client";
 
-import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
-import { useState, useEffect, Component, ReactNode } from "react";
+import { PrivyProvider as PrivyAuthProvider, useLogin } from "@privy-io/react-auth";
+import { useState, useEffect, useContext, Component, ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { WalletBridge } from "./WalletProvider";
 
 const PRIVY_APP_ID =
   process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmmb7r93600jq0dkvm8kyz0o0";
 
-// Catches Privy render errors — falls back to rendering children without Privy
 class PrivyErrorBoundary extends Component<
   { children: ReactNode; fallback: ReactNode },
   { hasError: boolean }
@@ -28,6 +28,17 @@ class PrivyErrorBoundary extends Component<
   }
 }
 
+// Redirect to dashboard on successful login
+function LoginRedirect() {
+  const router = useRouter();
+  useLogin({
+    onComplete: () => {
+      router.push("/dashboard");
+    },
+  });
+  return null;
+}
+
 export function PrivyProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
@@ -35,7 +46,6 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
     setMounted(true);
   }, []);
 
-  // SSR: render children directly without Privy
   if (!mounted) return <>{children}</>;
 
   return (
@@ -51,6 +61,7 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
       >
         {children}
         <WalletBridge />
+        <LoginRedirect />
       </PrivyAuthProvider>
     </PrivyErrorBoundary>
   );
