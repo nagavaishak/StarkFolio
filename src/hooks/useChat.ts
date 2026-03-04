@@ -20,6 +20,25 @@ async function executeToolCall(
   switch (toolName) {
     case "get_portfolio_balances": {
       if (!walletAddress) return { error: "Wallet not connected. Please sign in first." };
+      try {
+        // Fetch real on-chain balances via StarkZap SDK
+        const res = await fetch(`/api/starkzap?address=${encodeURIComponent(walletAddress)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.live && data.balances?.length > 0) {
+            const PRICES: Record<string, number> = { STRK: 0.38, ETH: 3200, USDC: 1.0, WBTC: 96000 };
+            const balances = data.balances.map((b: { symbol: string; balance: string; formatted: string }) => ({
+              symbol: b.symbol,
+              balance: b.balance,
+              formatted: b.formatted,
+              usdValue: (parseFloat(b.balance) * (PRICES[b.symbol] ?? 0)).toFixed(2),
+            }));
+            const totalUsd = balances.reduce((s: number, b: { usdValue: string }) => s + parseFloat(b.usdValue), 0);
+            return { address: walletAddress, balances, totalUsdValue: totalUsd.toFixed(2), source: "live_chain" };
+          }
+        }
+      } catch { /* fall through to demo */ }
+      // Demo fallback
       const seed = parseInt(walletAddress.slice(2, 8) || "deadbe", 16) % 100;
       return {
         address: walletAddress,
@@ -30,6 +49,7 @@ async function executeToolCall(
           { symbol: "WBTC", balance: (0.001 + seed * 0.00001).toFixed(8), usdValue: ((0.001 + seed * 0.00001) * 96000).toFixed(2) },
         ],
         totalUsdValue: ((150 + seed * 2.3) * 0.38 + (0.05 + seed * 0.001) * 3200 + (250 + seed * 5) + (0.001 + seed * 0.00001) * 96000).toFixed(2),
+        source: "demo",
       };
     }
 
@@ -57,18 +77,29 @@ async function executeToolCall(
 
     case "get_all_positions": {
       if (!walletAddress) return { error: "Wallet not connected." };
+      try {
+        const res = await fetch(`/api/starkzap?address=${encodeURIComponent(walletAddress)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.live && data.positions !== undefined) {
+            if (data.positions.length === 0) return { positions: [], message: "No active staking positions found on Sepolia." };
+            return { positions: data.positions, source: "live_chain" };
+          }
+        }
+      } catch { /* fall through */ }
       const seed = parseInt(walletAddress.slice(2, 8) || "abc123", 16) % 100;
       if (seed < 30) return { positions: [], message: "No active staking positions found." };
       return {
         positions: [
           {
-            validator: "Karnot",
+            validator: "Nethermind",
             staked: `${(100 + seed * 1.5).toFixed(2)} STRK`,
             rewards: `${(seed * 0.12).toFixed(4)} STRK`,
-            apr: "8.4%",
-            commissionPercent: "10%",
+            apr: "8.6%",
+            commissionPercent: "6%",
           },
         ],
+        source: "demo",
       };
     }
 

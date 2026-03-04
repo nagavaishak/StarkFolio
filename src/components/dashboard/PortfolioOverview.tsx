@@ -7,7 +7,7 @@ import { formatUsd } from "@/lib/utils/format";
 import { RefreshCw, TrendingUp } from "lucide-react";
 
 interface PortfolioOverviewProps {
-  portfolio: Portfolio | null;
+  portfolio: (Portfolio & { isDemo?: boolean }) | null;
   loading: boolean;
   onRefresh: () => void;
 }
@@ -35,9 +35,9 @@ export function PortfolioOverview({ portfolio, loading, onRefresh }: PortfolioOv
             <span className="mono text-3xl font-bold text-white">
               {formatUsd(portfolio?.totalUsdValue ?? 0)}
             </span>
-            <div className="flex items-center gap-1 text-green-400 mb-0.5">
+            <div className={`flex items-center gap-1 mb-0.5 ${portfolio?.isDemo ? "text-orange-400" : "text-green-400"}`}>
               <TrendingUp className="w-3.5 h-3.5" />
-              <span className="text-xs font-medium">Live</span>
+              <span className="text-xs font-medium">{portfolio?.isDemo ? "Demo" : "Live"}</span>
             </div>
           </div>
         )}

@@ -4,12 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Portfolio, TokenBalance } from "@/types/portfolio";
 import { MOCK_PRICES, BTC_TOKENS, TOKEN_LOGOS } from "@/lib/starkzap/tokens";
 
-// Mock portfolio data for testnet demo
-// In production: fetches real balances via StarkZap SDK
-function getMockPortfolio(address: string): Portfolio {
-  // Deterministically vary mock data based on address
+// Demo fallback — shown when wallet has zero on-chain balances
+function getDemoPortfolio(address: string): Portfolio & { isDemo: boolean } {
   const seed = parseInt(address.slice(2, 8) || "deadbe", 16) % 100;
-
   const tokens: TokenBalance[] = [
     {
       symbol: "STRK",
@@ -52,14 +49,12 @@ function getMockPortfolio(address: string): Portfolio {
       isBTC: true,
     },
   ];
-
   const totalUsdValue = tokens.reduce((sum, t) => sum + t.usdValue, 0);
-
-  return { totalUsdValue, tokens, lastUpdated: new Date() };
+  return { totalUsdValue, tokens, lastUpdated: new Date(), isDemo: true };
 }
 
 export function usePortfolio(walletAddress: string | null) {
-  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [portfolio, setPortfolio] = useState<(Portfolio & { isDemo?: boolean }) | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,19 +68,46 @@ export function usePortfolio(walletAddress: string | null) {
     setError(null);
 
     try {
-      // TODO: Replace with real StarkZap SDK calls when Privy is configured
-      // const sdk = new StarkZap({ network: "sepolia" });
-      // const wallet = await sdk.onboard({ strategy: OnboardStrategy.Privy, ... });
-      // const tokens = [sepoliaTokens.STRK, sepoliaTokens.ETH, sepoliaTokens.USDC, ...];
-      // for (const token of tokens) {
-      //   const balance = await wallet.balanceOf(token);
-      // }
+      // Fetch real on-chain balances via StarkZap SDK (server-side)
+      const res = await fetch(`/api/starkzap?address=${encodeURIComponent(walletAddress)}`);
 
-      await new Promise((r) => setTimeout(r, 800)); // Simulate network
-      setPortfolio(getMockPortfolio(walletAddress));
+      if (res.ok) {
+        const data = await res.json();
+
+        if (data.live && data.balances?.length > 0) {
+          // Map SDK response to our Portfolio shape
+          const tokens: TokenBalance[] = data.balances.map(
+            (b: { symbol: string; name: string; balance: string; tokenAddress: string; decimals: number }) => ({
+              symbol: b.symbol,
+              name: b.name,
+              balance: b.balance,
+              balanceFormatted: `${parseFloat(b.balance).toFixed(b.decimals <= 6 ? 2 : 4)} ${b.symbol}`,
+              usdValue: parseFloat(b.balance) * (MOCK_PRICES[b.symbol] ?? 0),
+              logoUrl: TOKEN_LOGOS[b.symbol] ?? "",
+              address: b.tokenAddress,
+              isBTC: BTC_TOKENS.has(b.symbol),
+            })
+          );
+
+          const totalUsdValue = tokens.reduce((sum, t) => sum + t.usdValue, 0);
+          const allZero = tokens.every((t) => parseFloat(t.balance) === 0);
+
+          if (allZero) {
+            // Wallet has no testnet funds — show demo data with indicator
+            setPortfolio(getDemoPortfolio(walletAddress));
+          } else {
+            setPortfolio({ totalUsdValue, tokens, lastUpdated: new Date(), isDemo: false });
+          }
+          return;
+        }
+      }
+
+      // Fallback to demo data if API fails
+      setPortfolio(getDemoPortfolio(walletAddress));
     } catch (e) {
-      setError("Failed to load portfolio");
-      console.error(e);
+      console.error("[usePortfolio] Error:", e);
+      setError(null); // Don't show error — just use demo data silently
+      setPortfolio(getDemoPortfolio(walletAddress));
     } finally {
       setLoading(false);
     }
