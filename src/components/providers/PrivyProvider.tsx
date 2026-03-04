@@ -16,9 +16,8 @@ export function PrivyProvider({ children }: { children: React.ReactNode }) {
         appearance: {
           theme: "dark",
           accentColor: "#F7931A",
-          logo: "/logo.svg",
         },
-        loginMethods: ["email", "google", "apple"],
+        loginMethods: ["email", "google"],
         embeddedWallets: {
           ethereum: {
             createOnLogin: "users-without-wallets",

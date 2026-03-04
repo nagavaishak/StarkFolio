@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { PrivyProvider } from "@/components/providers/PrivyProvider";
+import { ErrorBoundary } from "@/components/providers/ErrorBoundary";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body suppressHydrationWarning>
-        <PrivyProvider>{children}</PrivyProvider>
+        <ErrorBoundary>
+          <PrivyProvider>{children}</PrivyProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
