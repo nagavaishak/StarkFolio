@@ -1,7 +1,7 @@
 "use client";
 
 import { usePrivy } from "@privy-io/react-auth";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 
 interface WalletCtx {
   ready: boolean;
@@ -21,13 +21,35 @@ const defaults: WalletCtx = {
   walletAddress: null,
 };
 
-// Safe defaults context — consumed by useWallet() everywhere in the tree.
-// When Privy is not yet mounted, useWallet() returns these safe defaults
-// instead of calling usePrivy() (which would throw outside its provider).
+// Public context — consumed by useWallet() anywhere in the tree
 export const WalletContext = createContext<WalletCtx>(defaults);
 
-// This component renders INSIDE <PrivyAuthProvider>, so usePrivy() is safe here.
-export function WalletBridge({ children }: { children: React.ReactNode }) {
+// Private setter context — used by WalletBridge to push Privy state upward
+type CtxSetter = (ctx: WalletCtx) => void;
+const WalletSetterContext = createContext<CtxSetter>(() => {});
+
+/**
+ * WalletProvider wraps the ENTIRE app (outside PrivyAuthProvider).
+ * Children always render here with safe defaults, even if Privy fails.
+ */
+export function WalletProvider({ children }: { children: ReactNode }) {
+  const [ctx, setCtx] = useState<WalletCtx>(defaults);
+  return (
+    <WalletSetterContext.Provider value={setCtx}>
+      <WalletContext.Provider value={ctx}>
+        {children}
+      </WalletContext.Provider>
+    </WalletSetterContext.Provider>
+  );
+}
+
+/**
+ * WalletBridge renders INSIDE PrivyAuthProvider (called from PrivyProvider).
+ * It reads Privy state and pushes it up into WalletContext via the setter.
+ * Renders null — no UI impact.
+ */
+export function WalletBridge() {
+  const setCtx = useContext(WalletSetterContext);
   const { ready, authenticated, user, login, logout } = usePrivy();
 
   const walletAddress = useMemo(() => {
@@ -39,11 +61,12 @@ export function WalletBridge({ children }: { children: React.ReactNode }) {
     return wallet?.address ?? null;
   }, [user]);
 
-  return (
-    <WalletContext.Provider
-      value={{ ready, authenticated, user, login, logout, walletAddress }}
-    >
-      {children}
-    </WalletContext.Provider>
-  );
+  useEffect(() => {
+    setCtx({ ready, authenticated, user, login, logout, walletAddress });
+    // Reset to defaults when WalletBridge unmounts (e.g. Privy error)
+    return () => setCtx(defaults);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, authenticated, user, walletAddress]);
+
+  return null;
 }

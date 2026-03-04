@@ -1,63 +1,63 @@
 "use client";
 
 import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
-import { useState, useEffect, Suspense, Component, ReactNode } from "react";
+import { useState, useEffect, Component, ReactNode } from "react";
 import { WalletBridge } from "./WalletProvider";
 
-// Inner error boundary: if PrivyAuthProvider itself throws, fall back to
-// rendering children without Privy (landing page still works, login disabled).
+// Hardcoded as backup — this is a public client-side identifier, not a secret
+const PRIVY_APP_ID =
+  process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmmb7r93600jq0dkvm8kyz0o0";
+
 class PrivyErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { error: Error | null }
+  { children: ReactNode },
+  { hasError: boolean }
 > {
-  constructor(props: { children: ReactNode; fallback: ReactNode }) {
+  constructor(props: { children: ReactNode }) {
     super(props);
-    this.state = { error: null };
+    this.state = { hasError: false };
   }
-  static getDerivedStateFromError(error: Error) {
-    return { error };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.error("[Privy] init error (WalletContext keeps safe defaults):", error.message);
   }
   render() {
-    if (this.state.error) {
-      // Log for debugging, show fallback (children without Privy)
-      console.error("[PrivyProvider] init error:", this.state.error?.message);
-      return this.props.fallback;
-    }
+    // If Privy fails, render nothing — WalletContext stays at safe defaults
+    // Children render separately (outside this tree), so app still works
+    if (this.state.hasError) return null;
     return this.props.children;
   }
 }
 
-export function PrivyProvider({ children }: { children: ReactNode }) {
+/**
+ * PrivyProvider renders as a SIBLING to app children inside WalletProvider.
+ * It does NOT wrap children — children live outside the Privy tree entirely.
+ * WalletBridge (inside PrivyAuthProvider) pushes auth state into WalletContext.
+ */
+export function PrivyProvider() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+  // Don't render anything on the server — children render via WalletProvider above
+  if (!mounted) return null;
 
-  // Before client mount: render children without Privy (safe defaults via WalletContext).
-  if (!mounted || !appId || appId === "your-privy-app-id-here") {
-    return <>{children}</>;
-  }
-
-  // After mount: wrap with Privy. Suspense handles React use() promises.
-  // PrivyErrorBoundary catches any init throws — app still renders without login.
   return (
-    <PrivyErrorBoundary fallback={<>{children}</>}>
-      <Suspense fallback={<>{children}</>}>
-        <PrivyAuthProvider
-          appId={appId}
-          config={{
-            appearance: {
-              theme: "dark",
-              accentColor: "#F7931A",
-            },
-          }}
-        >
-          <WalletBridge>{children}</WalletBridge>
-        </PrivyAuthProvider>
-      </Suspense>
+    <PrivyErrorBoundary>
+      <PrivyAuthProvider
+        appId={PRIVY_APP_ID}
+        config={{
+          appearance: {
+            theme: "dark",
+            accentColor: "#F7931A",
+          },
+        }}
+      >
+        <WalletBridge />
+      </PrivyAuthProvider>
     </PrivyErrorBoundary>
   );
 }

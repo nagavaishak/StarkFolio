@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { WalletProvider } from "@/components/providers/WalletProvider";
 import { PrivyProvider } from "@/components/providers/PrivyProvider";
 import { ErrorBoundary } from "@/components/providers/ErrorBoundary";
 
@@ -26,7 +27,16 @@ export default function RootLayout({
     <html lang="en">
       <body suppressHydrationWarning>
         <ErrorBoundary>
-          <PrivyProvider>{children}</PrivyProvider>
+          {/*
+           * WalletProvider wraps children with WalletContext (safe defaults).
+           * PrivyProvider mounts as a sibling — it NEVER wraps children.
+           * WalletBridge (inside Privy) pushes auth state into WalletContext.
+           * If Privy fails, children still render fine with ready:false defaults.
+           */}
+          <WalletProvider>
+            {children}
+            <PrivyProvider />
+          </WalletProvider>
         </ErrorBoundary>
       </body>
     </html>
