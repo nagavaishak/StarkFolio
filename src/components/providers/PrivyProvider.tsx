@@ -1,11 +1,20 @@
 "use client";
 
 import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
+import { useState, useEffect } from "react";
 
 export function PrivyProvider({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
-  if (!appId || appId === "your-privy-app-id-here") {
+  // Before client mount (SSR + first paint): render children without Privy.
+  // After mount: wrap with real PrivyAuthProvider.
+  if (!mounted || !appId || appId === "your-privy-app-id-here") {
     return <>{children}</>;
   }
 
