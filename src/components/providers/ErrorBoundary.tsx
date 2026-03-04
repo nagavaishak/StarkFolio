@@ -38,11 +38,11 @@ export class ErrorBoundary extends Component<Props, State> {
             >
               Reload
             </button>
-            {process.env.NODE_ENV === "development" && (
-              <pre className="mt-4 text-xs text-red-400 text-left bg-red-500/10 p-3 rounded-lg overflow-auto">
-                {this.state.error?.message}
-              </pre>
-            )}
+            <pre className="mt-4 text-xs text-red-400 text-left bg-red-500/10 p-3 rounded-lg overflow-auto max-w-sm">
+              {this.state.error?.message}
+              {"\n"}
+              {this.state.error?.stack?.slice(0, 300)}
+            </pre>
           </div>
         </div>
       );
