@@ -12,7 +12,7 @@ import { TransactionFeed } from "@/components/dashboard/TransactionFeed";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { ToastContainer, useToast } from "@/components/ui/Toast";
 import { shortenAddress } from "@/lib/utils/format";
-import { Bitcoin, LogOut, LayoutDashboard, Landmark, MessageSquare, Loader2 } from "lucide-react";
+import { Bitcoin, LogOut, LayoutDashboard, Landmark, MessageSquare, Loader2, Copy, Check } from "lucide-react";
 
 type Tab = "portfolio" | "staking" | "chat";
 
@@ -23,7 +23,15 @@ export default function Dashboard() {
   const { pools, positions, loading: stakingLoading } = useStaking(walletAddress);
   const { messages, isLoading: chatLoading, sendMessage } = useChat(walletAddress);
   const [activeTab, setActiveTab] = useState<Tab>("portfolio");
+  const [copied, setCopied] = useState(false);
   const { toasts, removeToast } = useToast();
+
+  const copyAddress = () => {
+    if (!walletAddress) return;
+    navigator.clipboard.writeText(walletAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -63,10 +71,19 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-3">
             {walletAddress && (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 glass rounded-lg">
+              <button
+                onClick={copyAddress}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 glass rounded-lg hover:bg-white/5 transition-colors group"
+                title="Copy wallet address"
+              >
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                <span className="mono text-xs text-gray-400">{shortenAddress(walletAddress)}</span>
-              </div>
+                <span className="mono text-xs text-gray-400 group-hover:text-gray-200 transition-colors">{shortenAddress(walletAddress)}</span>
+                {copied ? (
+                  <Check className="w-3 h-3 text-green-400" />
+                ) : (
+                  <Copy className="w-3 h-3 text-gray-600 group-hover:text-gray-400 transition-colors" />
+                )}
+              </button>
             )}
             <button
               onClick={() => { logout(); router.push("/"); }}

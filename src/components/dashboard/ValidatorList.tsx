@@ -10,11 +10,15 @@ interface ValidatorListProps {
 }
 
 const VALIDATOR_DESCRIPTIONS: Record<string, string> = {
+  Nethermind: "Leading Ethereum client & infrastructure team",
+  "Chorus One": "Institutional-grade staking provider",
+  Cumulo: "Decentralized staking pool protocol",
+  Teku: "Enterprise Ethereum client by ConsenSys",
+  "Moonli.me": "Community-run Starknet validator",
   Karnot: "Starknet infrastructure company",
   Argent: "Leading Starknet wallet provider",
   AVNU: "DEX aggregator on Starknet",
   Braavos: "Smart contract wallet team",
-  Nethermind: "Leading Ethereum client team",
 };
 
 export function ValidatorList({ pools }: ValidatorListProps) {
