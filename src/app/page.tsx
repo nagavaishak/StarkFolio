@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useLogin } from "@privy-io/react-auth";
 import { useWallet } from "@/hooks/useWallet";
 import {
   Bitcoin,
@@ -220,8 +221,13 @@ function PortfolioMockup() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Home() {
-  const { ready, authenticated, login } = useWallet();
+  const { ready, authenticated } = useWallet();
   const router = useRouter();
+  const { login } = useLogin({
+    onComplete: () => {
+      router.push("/dashboard");
+    },
+  });
 
   useEffect(() => {
     if (ready && authenticated) {

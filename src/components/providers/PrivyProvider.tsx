@@ -1,8 +1,7 @@
 "use client";
 
-import { PrivyProvider as PrivyAuthProvider, useLogin } from "@privy-io/react-auth";
-import { useState, useEffect, useContext, Component, ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
+import { useState, useEffect, Component, ReactNode } from "react";
 import { WalletBridge } from "./WalletProvider";
 
 const PRIVY_APP_ID =
@@ -28,17 +27,6 @@ class PrivyErrorBoundary extends Component<
   }
 }
 
-// Redirect to dashboard on successful login
-function LoginRedirect() {
-  const router = useRouter();
-  useLogin({
-    onComplete: () => {
-      router.push("/dashboard");
-    },
-  });
-  return null;
-}
-
 export function PrivyProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
@@ -61,7 +49,6 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
       >
         {children}
         <WalletBridge />
-        <LoginRedirect />
       </PrivyAuthProvider>
     </PrivyErrorBoundary>
   );
