@@ -248,10 +248,9 @@ export default function Home() {
   const handleLaunch = () => {
     if (authenticated) {
       router.push("/dashboard");
-    } else if (ready) {
+    } else {
       login();
     }
-    // if !ready: Privy still connecting, do nothing (button shows "Connecting...")
   };
 
   const TICKER = [
@@ -296,9 +295,9 @@ export default function Home() {
             </a>
             <button
               onClick={handleLaunch}
-              className={`px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold text-sm transition-all duration-200 flex items-center gap-1.5 ${!ready ? "opacity-60 cursor-wait" : ""}`}
+              className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 text-white font-semibold text-sm transition-all duration-200 flex items-center gap-1.5"
             >
-              {authenticated ? "Open App" : ready ? "Launch App" : "Connecting..."}
+              {authenticated ? "Open App" : "Launch App"}
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -345,10 +344,10 @@ export default function Home() {
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handleLaunch}
-                  className={`px-7 py-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold text-base shadow-2xl hover:from-orange-400 hover:to-orange-300 transition-all duration-200 flex items-center gap-2.5 glow-btc ${!ready ? "opacity-60 cursor-wait" : ""}`}
+                  className="px-7 py-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 text-white font-bold text-base shadow-2xl hover:from-orange-400 hover:to-orange-300 transition-all duration-200 flex items-center gap-2.5 glow-btc"
                 >
                   <Zap className="w-4 h-4" />
-                  {authenticated ? "Open Dashboard" : ready ? "Launch App — Free" : "Connecting..."}
+                  {authenticated ? "Open Dashboard" : "Launch App — Free"}
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <a
@@ -505,9 +504,9 @@ export default function Home() {
             </ul>
             <button
               onClick={handleLaunch}
-              className={`mt-8 px-5 py-3 rounded-xl bg-orange-500/15 border border-orange-500/25 text-orange-400 font-semibold text-sm hover:bg-orange-500/20 transition-colors flex items-center gap-2 ${!ready ? "opacity-60 cursor-wait" : ""}`}
+              className="mt-8 px-5 py-3 rounded-xl bg-orange-500/15 border border-orange-500/25 text-orange-400 font-semibold text-sm hover:bg-orange-500/20 transition-colors flex items-center gap-2"
             >
-              {ready ? "Try it free" : "Connecting..."}
+              Try it free
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -630,9 +629,9 @@ export default function Home() {
             </div>
             <button
               onClick={handleLaunch}
-              className={`px-5 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 font-semibold text-sm hover:bg-green-500/15 transition-colors flex items-center gap-2 ${!ready ? "opacity-60 cursor-wait" : ""}`}
+              className="px-5 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 font-semibold text-sm hover:bg-green-500/15 transition-colors flex items-center gap-2"
             >
-              {ready ? "Start staking" : "Connecting..."}
+              Start staking
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -691,10 +690,10 @@ export default function Home() {
           </p>
           <button
             onClick={handleLaunch}
-            className={`px-10 py-5 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-400 text-white font-black text-xl shadow-2xl hover:from-orange-400 hover:to-orange-300 transition-all duration-200 flex items-center gap-3 mx-auto glow-pulse ${!ready ? "opacity-70 cursor-wait" : ""}`}
+            className="px-10 py-5 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-400 text-white font-black text-xl shadow-2xl hover:from-orange-400 hover:to-orange-300 transition-all duration-200 flex items-center gap-3 mx-auto glow-pulse"
           >
             <Zap className="w-6 h-6" />
-            {authenticated ? "Go to Dashboard" : ready ? "Launch StarkFolio — Free" : "Connecting..."}
+            {authenticated ? "Go to Dashboard" : "Launch StarkFolio — Free"}
             <ArrowRight className="w-6 h-6" />
           </button>
           <p className="text-xs text-gray-600 mt-5">
