@@ -4,15 +4,15 @@ import { PrivyProvider as PrivyAuthProvider } from "@privy-io/react-auth";
 import { useState, useEffect, Component, ReactNode } from "react";
 import { WalletBridge } from "./WalletProvider";
 
-// Hardcoded as backup — this is a public client-side identifier, not a secret
 const PRIVY_APP_ID =
   process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmmb7r93600jq0dkvm8kyz0o0";
 
+// Catches Privy render errors — falls back to rendering children without Privy
 class PrivyErrorBoundary extends Component<
-  { children: ReactNode },
+  { children: ReactNode; fallback: ReactNode },
   { hasError: boolean }
 > {
-  constructor(props: { children: ReactNode }) {
+  constructor(props: { children: ReactNode; fallback: ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -20,33 +20,26 @@ class PrivyErrorBoundary extends Component<
     return { hasError: true };
   }
   componentDidCatch(error: Error) {
-    console.error("[Privy] init error (WalletContext keeps safe defaults):", error.message);
+    console.error("[Privy] render error:", error.message);
   }
   render() {
-    // If Privy fails, render nothing — WalletContext stays at safe defaults
-    // Children render separately (outside this tree), so app still works
-    if (this.state.hasError) return null;
+    if (this.state.hasError) return this.props.fallback;
     return this.props.children;
   }
 }
 
-/**
- * PrivyProvider renders as a SIBLING to app children inside WalletProvider.
- * It does NOT wrap children — children live outside the Privy tree entirely.
- * WalletBridge (inside PrivyAuthProvider) pushes auth state into WalletContext.
- */
-export function PrivyProvider() {
+export function PrivyProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Don't render anything on the server — children render via WalletProvider above
-  if (!mounted) return null;
+  // SSR: render children directly without Privy
+  if (!mounted) return <>{children}</>;
 
   return (
-    <PrivyErrorBoundary>
+    <PrivyErrorBoundary fallback={<>{children}</>}>
       <PrivyAuthProvider
         appId={PRIVY_APP_ID}
         config={{
@@ -56,6 +49,7 @@ export function PrivyProvider() {
           },
         }}
       >
+        {children}
         <WalletBridge />
       </PrivyAuthProvider>
     </PrivyErrorBoundary>

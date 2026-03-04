@@ -34,8 +34,9 @@ export default function RootLayout({
            * If Privy fails, children still render fine with ready:false defaults.
            */}
           <WalletProvider>
-            {children}
-            <PrivyProvider />
+            <PrivyProvider>
+              {children}
+            </PrivyProvider>
           </WalletProvider>
         </ErrorBoundary>
       </body>
