@@ -63,6 +63,11 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
             theme: "dark",
             accentColor: "#F7931A",
           },
+          embeddedWallets: {
+            ethereum: {
+              createOnLogin: "users-without-wallets",
+            },
+          },
         }}
       >
         <WalletBridge />
