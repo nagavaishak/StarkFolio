@@ -1,22 +1,27 @@
-# StarkFolio
+# StarkFolio — AI Bitcoin Yield Agent on Starknet
 
 **Your AI portfolio manager for Bitcoin yield on Starknet.**
 
-StarkFolio lets anyone manage Bitcoin and crypto assets on Starknet through natural language — no crypto knowledge required. Just sign in with your email or Google and start talking to your AI portfolio manager.
+StarkFolio lets anyone manage Bitcoin and crypto assets on Starknet through natural language — no crypto knowledge required. Sign in with email, and your AI manager stakes, claims rewards, and optimizes yield automatically.
 
-> Built for the [Starkzap Developer Challenge](https://starkzap.dev) · $3,000 prize pool · Due March 10, 2026
+> Built for the [Starkzap Developer Challenge](https://github.com/keep-starknet-strange/starkzap) · $3,000 prize pool · Deadline Mar 10 2026
+
+**Live demo:** https://starkfolio-umber.vercel.app
 
 ---
 
 ## What It Does
 
-- **"What's in my portfolio?"** → Shows all token balances with USD values
-- **"Where should I stake my STRK?"** → Compares all validator APRs, picks the best
-- **"Stake 100 STRK with Karnot"** → Executes the stake, gasless, no ETH needed
-- **"Claim all my rewards"** → Batches claims across all active positions
-- **"Send 50 USDC to 0x..."** → Transfers tokens, also gasless
+| Say this | StarkFolio does this |
+|----------|---------------------|
+| "What's in my portfolio?" | Reads live on-chain balances via StarkZap ERC20 |
+| "Where should I stake my STRK?" | Compares all 5 validators by APR + commission |
+| "Stake 100 STRK with Nethermind" | Executes gasless stake, returns Voyager link |
+| "Claim all my rewards" | Batches all pool claims into **one atomic tx** via Transaction Builder |
+| "Send 10 USDC to 0x…" | Gasless transfer, no ETH needed |
+| "Exit my Chorus One position" | Initiates 21-day unbonding cooldown |
 
-Everything is gasless via AVNU Paymaster. No seed phrases. No wallet extensions.
+Everything is **gasless** via AVNU Paymaster. No seed phrases. No wallet extensions.
 
 ---
 
@@ -24,143 +29,181 @@ Everything is gasless via AVNU Paymaster. No seed phrases. No wallet extensions.
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript |
-| Blockchain SDK | `starkzap` |
-| Wallet Auth | Privy (email, Google, Apple) |
-| Paymaster | AVNU Paymaster (gasless) |
-| AI Agent | Google Gemini Flash (function calling) |
-| Styling | Tailwind CSS 4 |
-| Network | Starknet Sepolia |
-| Deploy | Vercel |
-
-### Starkzap SDK Modules Used
-- **Wallets** — Privy social login → Starknet embedded wallet
-- **ERC20** — Token balance fetching for BTC, STRK, ETH, stablecoins
-- **Staking** — Full lifecycle: enter, add, claim, exit-intent, exit
-- **Transaction Builder** — Batched atomic operations (claim-all + restake)
-- **AVNU Paymaster** — Every transaction is gasless (`feeMode: "sponsored"`)
+| Framework | Next.js 16 (App Router, TypeScript) |
+| Blockchain SDK | **StarkZap** v1.0 — all 4 modules |
+| Wallet Auth | Privy v3 (embedded Starknet wallet) |
+| Paymaster | AVNU Paymaster (`feeMode: "sponsored"`) |
+| AI | Gemini 2.5 Flash (function calling, 10 tools) |
+| Styling | Tailwind CSS v4 |
+| Deployment | Vercel |
+| Network | Starknet Sepolia testnet |
 
 ---
 
-## Getting Started
+## StarkZap SDK — All 4 Modules
 
-### Prerequisites
-- Node.js 18+
-- pnpm
+### 1. Wallets — Privy embedded wallet, no seed phrases
+```typescript
+import { StarkZap, OnboardStrategy } from "starkzap";
 
-### 1. Clone and install
-
-```bash
-git clone https://github.com/nagavaishak/StarkFolio.git
-cd StarkFolio
-pnpm install
+const sdk = new StarkZap({ network: "sepolia" });
+const { wallet } = await sdk.onboard({
+  strategy: OnboardStrategy.Privy,
+  deploy: "if_needed",          // auto-deploys wallet on first tx
+  privy: {
+    resolve: async () => ({
+      walletId,
+      publicKey,
+      serverUrl: `${appUrl}/api/wallet/sign`,
+      headers: { Authorization: `Bearer ${authToken}` },
+    }),
+  },
+});
 ```
 
-### 2. Set up environment variables
+### 2. Staking — full lifecycle (enter → claim → exit)
+```typescript
+import { Amount, sepoliaTokens, fromAddress } from "starkzap";
 
-```bash
-cp .env.example .env.local
+// Smart stake: auto-detects enter vs add based on membership
+const tx = await wallet.stake(
+  fromAddress(poolAddress),
+  Amount.parse("100", sepoliaTokens.STRK)
+);
+await tx.wait();
+
+// Claim rewards from a specific pool
+const tx = await wallet.claimPoolRewards(fromAddress(poolAddress));
+
+// Begin exit (starts 21-day cooldown)
+const tx = await wallet.exitPoolIntent(
+  fromAddress(poolAddress),
+  Amount.parse("50", sepoliaTokens.STRK)
+);
 ```
 
-Edit `.env.local`:
-
-```bash
-# Privy — create app at https://dashboard.privy.io
-NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id
-PRIVY_APP_SECRET=your-privy-secret
-
-# Google Gemini Flash — free tier at https://aistudio.google.com/apikey
-GOOGLE_AI_API_KEY=your-gemini-api-key
-
-# Starknet (already set)
-NEXT_PUBLIC_STARKNET_NETWORK=sepolia
+### 3. Transaction Builder — batch claim ALL pools atomically
+```typescript
+// One tx claims rewards from all 5 validators at once
+// Atomic: either all pools claim or none do
+let builder = wallet.tx();
+for (const poolAddress of allPoolAddresses) {
+  builder = builder.claimPoolRewards(fromAddress(poolAddress));
+}
+const tx = await builder.send({ feeMode: "sponsored" });
+await tx.wait();
+// Result: 5 claim operations in 1 transaction
 ```
 
-### 3. Run
-
-```bash
-pnpm dev
+### 4. AVNU Paymaster — gasless for every operation
+```typescript
+// All operations use sponsored fee mode — users pay $0 gas
+const tx = await wallet.stake(poolAddress, amount);   // gasless
+const tx = await wallet.claimPoolRewards(poolAddress); // gasless
+const tx = await builder.send({ feeMode: "sponsored" }); // gasless batch
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+---
+
+## AI Agent — 10 Function-Calling Tools
+
+Gemini 2.5 Flash bridges natural language → StarkZap SDK calls:
+
+| Tool | What it calls |
+|------|--------------|
+| `get_portfolio_balances` | `wallet.balanceOf()` for STRK, ETH, USDC, WBTC… |
+| `get_staking_pools` | `sepoliaValidators` + live pool data |
+| `get_all_positions` | `wallet.getPoolPosition()` across all validators |
+| `recommend_best_yield` | APR + commission analysis across pools |
+| `stake_tokens` | `wallet.stake()` via `/api/execute` |
+| `claim_rewards` | `wallet.claimPoolRewards()` |
+| `claim_all_rewards` | `wallet.tx().claimPoolRewards()×N` (Transaction Builder) |
+| `transfer_tokens` | `wallet.transfer()` |
+| `exit_staking_pool` | `wallet.exitPoolIntent()` |
+| `get_staking_position` | `wallet.getPoolPosition()` for one pool |
+
+All fund-moving tools require explicit user confirmation before executing.
 
 ---
 
 ## Architecture
 
 ```
-┌────────────────────────────────────────────┐
-│              Next.js Frontend               │
-│                                             │
-│  Login Page  │  Dashboard  │  AI Chat      │
-│  (Privy)     │  (Portfolio │  (Gemini      │
-│              │  + Staking) │   Flash)      │
-└──────────────────────┬─────────────────────┘
-                       │
-┌──────────────────────▼─────────────────────┐
-│           Next.js API Routes                │
-│                                             │
-│  /api/chat      → Gemini + tool execution  │
-│  /api/wallet    → Privy wallet proxy       │
-│  /api/wallet/sign → Privy signing proxy    │
-└──────────────────────┬─────────────────────┘
-                       │
-┌──────────────────────▼─────────────────────┐
-│              Starkzap SDK                   │
-│                                             │
-│  WalletInterface · ERC20 · Staking         │
-│  Transaction Builder · AVNU Paymaster      │
-└──────────────────────┬─────────────────────┘
-                       │
-┌──────────────────────▼─────────────────────┐
-│           Starknet Blockchain               │
-│  STRK Staking · BTC Tokens · Stablecoins  │
-└────────────────────────────────────────────┘
+Browser (Next.js)
+  └─ Privy embedded wallet (self-custodial, no seed phrase)
+       └─ WalletContext → dashboard + AI chat
+
+/api/chat   Gemini 2.5 Flash + 10 function-calling tools
+  └─ Read tools  → /api/starkzap  (server-side StarkZap reads)
+  └─ Write tools → /api/execute   (sign via /api/wallet/sign)
+
+/api/execute
+  └─ Verify Privy auth token
+  └─ Onboard StarkZap wallet (Privy strategy)
+  └─ Execute: stake / claim / batch-claim / transfer / exit
+  └─ Return tx.hash + tx.explorerUrl
+
+/api/wallet/sign  (Privy signing proxy)
+  └─ StarkZap calls this to sign transactions
+  └─ Forwards to Privy server-side API
+  └─ Private key never leaves Privy custody
 ```
 
 ---
 
-## AI Capabilities
+## Running Locally
 
-The Gemini Flash agent has 10 tools:
+```bash
+git clone https://github.com/nagavaishak/StarkFolio.git
+cd StarkFolio
+pnpm install
+cp .env.example .env.local
+# fill in .env.local
+pnpm dev
+```
 
-| Tool | Description |
-|------|-------------|
-| `get_portfolio_balances` | All token balances + USD values |
-| `get_staking_pools` | All validators with APR + commission |
-| `get_staking_position` | Position in a specific pool |
-| `get_all_positions` | All active staking positions |
-| `stake_tokens` | Smart stake (auto enter or add) |
-| `claim_rewards` | Claim from specific pool |
-| `claim_all_rewards` | Batch claim all positions |
-| `transfer_tokens` | Send tokens to any address |
-| `recommend_best_yield` | AI analysis of best strategy |
-| `exit_staking_pool` | Begin 21-day exit cooldown |
+Open http://localhost:3000
 
-All fund-moving operations require explicit user confirmation before execution.
+### Environment Variables
 
----
+```bash
+# Privy — create app at dashboard.privy.io
+NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id
+PRIVY_APP_SECRET=your-privy-app-secret
 
-## Key Features
+# Google AI — get key at aistudio.google.com
+GOOGLE_AI_API_KEY=your-gemini-api-key
 
-### Gasless Everything
-Every transaction uses AVNU Paymaster with `feeMode: "sponsored"`. Users never need to hold ETH for gas.
-
-### BTCFi Focus
-Native support for all Starknet BTC tokens: WBTC, LBTC, SolvBTC, tBTC. Dedicated BTC yield tracking.
-
-### Batched Transactions
-Uses Starkzap Transaction Builder for atomic multi-operation batches — e.g., claim all rewards + restake in a single transaction.
-
-### No Crypto Knowledge Required
-Privy handles wallet creation invisibly. Users sign in with email or Google and get a Starknet wallet automatically.
+# Starknet
+NEXT_PUBLIC_STARKNET_NETWORK=sepolia
+NEXT_PUBLIC_EXPLORER_URL=https://sepolia.voyager.online
+```
 
 ---
 
-## Demo
+## Staking Validators (Sepolia)
 
-Live: [starkfolio.vercel.app](https://starkfolio.vercel.app)
+| Validator | APR | Commission |
+|-----------|-----|-----------|
+| Nethermind | 8.6% | 6% |
+| Chorus One | 8.2% | 7% |
+| Cumulo | 8.0% | 8% |
+| Teku | 7.9% | 8% |
+| Moonli.me | 7.7% | 10% |
+
+---
+
+## GitHub Issues Filed on starkzap
+
+- [#56](https://github.com/keep-starknet-strange/starkzap/issues/56) — Privy integration: `serverUrl` and `headers` not in quick start docs
+- [#57](https://github.com/keep-starknet-strange/starkzap/issues/57) — `@cartridge/controller` static import breaks Next.js — should be optional
+- [#58](https://github.com/keep-starknet-strange/starkzap/issues/58) — Read-only wallet pattern: `{ address }` as `WalletInterface` for server-side queries
+
+---
+
+## awesome-starkzap
+
+Listed in [awesome-starkzap](https://github.com/keep-starknet-strange/awesome-starkzap) via [PR #18](https://github.com/keep-starknet-strange/awesome-starkzap/pull/18).
 
 ---
 

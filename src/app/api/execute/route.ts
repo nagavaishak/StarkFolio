@@ -104,6 +104,29 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      // Uses Transaction Builder to batch-claim all pools in ONE atomic tx
+      case "claim_all_rewards": {
+        const poolAddresses = Object.keys(VALIDATOR_NAMES);
+        // Build a single batched tx: .claimPoolRewards(pool1).claimPoolRewards(pool2)...
+        let builder = wallet.tx();
+        for (const addr of poolAddresses) {
+          builder = builder.claimPoolRewards(fromAddress(addr));
+        }
+        const tx = await builder.send({ feeMode: "sponsored" } as Parameters<typeof builder.send>[0]);
+        await tx.wait();
+        result = {
+          status: "confirmed",
+          operation: "claim_all_rewards",
+          poolsClaimed: poolAddresses.length,
+          validators: Object.values(VALIDATOR_NAMES).join(", "),
+          txHash: tx.hash,
+          explorerUrl: tx.explorerUrl,
+          feeMode: "sponsored",
+          note: `All ${poolAddresses.length} pools claimed in one atomic tx via StarkZap Transaction Builder. Gasless via AVNU.`,
+        };
+        break;
+      }
+
       case "transfer": {
         const { token_symbol, amount, recipient } = params;
         const token = sepoliaTokens[token_symbol as keyof typeof sepoliaTokens];
