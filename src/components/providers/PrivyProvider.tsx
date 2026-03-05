@@ -5,7 +5,7 @@ import { useState, useEffect, Component, ReactNode } from "react";
 import { WalletBridge } from "./WalletProvider";
 
 const PRIVY_APP_ID =
-  process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmmb7r93600jq0dkvm8kyz0o0";
+  process.env.NEXT_PUBLIC_PRIVY_APP_ID || "cmmcpau5z01130cl5w8j1e96o";
 
 /**
  * Error boundary that renders children even if Privy crashes.
