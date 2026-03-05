@@ -57,9 +57,6 @@ export function WalletBridge() {
   // useLogin gives us a login function that opens the Privy modal
   // AND fires onComplete when the user finishes logging in
   const { login } = useLogin({
-    onComplete: (user) => {
-      console.log("[WalletBridge] login complete, user:", user);
-    },
     onError: (error) => {
       console.error("[WalletBridge] login error:", error);
     },
@@ -76,12 +73,10 @@ export function WalletBridge() {
 
   // Wrap login in a stable callback
   const stableLogin = useCallback(() => {
-    console.log("[WalletBridge] login() called");
     login();
   }, [login]);
 
   useEffect(() => {
-    console.log("[WalletBridge] updating context — ready:", ready, "authenticated:", authenticated, "walletAddress:", walletAddress);
     setCtx({ ready, authenticated, user, login: stableLogin, logout, walletAddress, getAccessToken });
     // Reset to defaults when WalletBridge unmounts (e.g. Privy error)
     return () => setCtx(defaults);

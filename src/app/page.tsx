@@ -246,7 +246,6 @@ export default function Home() {
   }, []);
 
   const handleLaunch = () => {
-    console.log("[page] handleLaunch — authenticated:", authenticated, "login:", login.toString().slice(0, 50));
     if (authenticated) {
       router.push("/dashboard");
     } else {
